@@ -44,7 +44,12 @@ int main()
         printf("%f", C[i]);
     }
 
-
-
-
 }
+
+Step to run command in linux
+Open a terminal and create a .cu file using a text editor like nano
+nano matmul.cu
+
+compile 
+nvcc -o matmul matmul.cu
+./matmul
