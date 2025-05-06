@@ -1,0 +1,54 @@
+Cuda addition
+
+
+// vector addition for 2x2 matrix (4 elements)
+
+#include <stdio.h>
+
+__global__ void vector(float *A, float *B, float *C, int n) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) {
+        C[i] = A[i] + B[i];
+    }
+}
+
+int main() {
+    int n = 2;
+    int total = n * n;  // Total number of elements = 4
+    size_t size = total * sizeof(float);
+
+    float A[] = {1, 2, 3, 4};
+    float B[] = {5, 6, 7, 8};
+    float C[4];
+
+    float *d_A, *d_B, *d_C;
+
+    // Allocate GPU memory
+    cudaMalloc(&d_A, size);
+    cudaMalloc(&d_B, size);
+    cudaMalloc(&d_C, size);
+
+    // Copy input data from host to device
+    cudaMemcpy(d_A, A, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, B, size, cudaMemcpyHostToDevice);
+
+    // Launch kernel with 1 block and 4 threads
+    vector<<<1, total>>>(d_A, d_B, d_C, total);
+
+    // Copy result back from device to host
+    cudaMemcpy(C, d_C, size, cudaMemcpyDeviceToHost);
+
+    // Print result
+    printf("Result of A + B:\n");
+    for (int i = 0; i < total; i++) {
+        printf("%f ", C[i]);
+    }
+    printf("\n");
+
+    // Free GPU memory
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_C);
+
+    return 0;
+}
