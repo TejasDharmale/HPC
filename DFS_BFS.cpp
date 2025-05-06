@@ -1,70 +1,118 @@
-#include<iostream>
-#include<omp.h>
+#include <iostream>
+#include <string.h>
+#include <omp.h>
 
 using namespace std;
 
-void bubble(int array[], int n){
-    for (int i = 0; i < n - 1; i++){
-        for (int j = 0; j < n - i - 1; j++){
-            if (array[j] > array[j + 1]) swap(array[j], array[j + 1]);
-        }
-    }
-}
+const int MAXN = 100;
 
-void pBubble(int array[], int n){
-    //Sort odd indexed numbers
-    for(int i = 0; i < n; ++i){    
-        #pragma omp for
-        for (int j = 1; j < n; j += 2){
-        if (array[j] < array[j-1])
+int adj_matrix[MAXN][MAXN];
+int adj_list[MAXN][MAXN];
+int dist[MAXN];
+bool visited[MAXN];
+omp_lock_t locks[MAXN];
+
+void dfs(int node)
+{
+    visited[node] = true;
+    cout << node << " ";
+
+#pragma omp parallel for
+    for (int i = 0; i < MAXN; i++)
+    {
+        if (adj_matrix[node][i])
         {
-          swap(array[j], array[j - 1]);
+            omp_set_lock(&locks[i]);
+            if (!visited[i])
+            {
+                visited[i] = true;
+                omp_unset_lock(&locks[i]);
+                dfs(i);
+            }
+            else
+            {
+                omp_unset_lock(&locks[i]);
+            }
         }
     }
+}
 
-    // Synchronize
-    #pragma omp barrier
+void bfs(int node)
+{
+    memset(dist, -1, sizeof(dist));
+    dist[node] = 0;
 
-    //Sort even indexed numbers
-    #pragma omp for
-    for (int j = 2; j < n; j += 2){
-      if (array[j] < array[j-1])
-      {
-        swap(array[j], array[j - 1]);
-      }
+    int q[MAXN];
+    int front = 0, rear = 0;
+    q[rear++] = node;
+
+    while (front != rear)
+    {
+        int u = q[front++];
+        cout << u << " ";
+
+#pragma omp parallel for
+        for (int i = 0; i < MAXN; i++)
+        {
+            if (adj_list[u][i])
+            {
+                omp_set_lock(&locks[i]);
+                if (dist[i] == -1)
+                {
+                    dist[i] = dist[u] + 1;
+                    q[rear++] = i;
+                }
+                omp_unset_lock(&locks[i]);
+            }
+        }
     }
-  }
 }
 
-void printArray(int arr[], int n){
-    for(int i = 0; i < n; i++) cout << arr[i] << " ";
-    cout << "\n";
+int main()
+{
+    int n, m;
+    cout << "Enter the number of nodes: ";
+    cin >> n;
+    cout << "Enter the number of edges: ";
+    cin >> m;
+
+    for (int i = 0; i < MAXN; i++)
+    {
+        for (int j = 0; j < MAXN; j++)
+        {
+            adj_matrix[i][j] = 0;
+            adj_list[i][j] = 0;
+        }
+        visited[i] = false;
+        omp_init_lock(&locks[i]);
+    }
+
+    cout << "Enter the edges: " << endl;
+    for (int i = 0; i < m; i++)
+    {
+        int u, v;
+        cout << "Enter edge " << i + 1 << " (u v): ";
+        cin >> u >> v;
+        adj_matrix[u][v] = adj_matrix[v][u] = 1;
+        adj_list[u][v] = adj_list[v][u] = 1;
+    }
+
+    int start_node;
+    cout << "Enter the starting node for DFS and BFS: ";
+    cin >> start_node;
+
+    cout << "DFS: ";
+    dfs(start_node);
+    cout << endl;
+
+    cout << "BFS: ";
+    bfs(start_node);
+    cout << endl;
+
+    for (int i = 0; i < MAXN; i++)
+    {
+        omp_destroy_lock(&locks[i]);
+    }
+
+    return 0;
 }
-
-int main(){
-    // Set up variables
-    int n = 10;
-    int arr[n];
-    int brr[n];
-    double start_time, end_time;
-
-    // Create an array with numbers starting from n to 1
-    for(int i = 0, j = n; i < n; i++, j--) arr[i] = j;
-    
-    // Sequential time
-    start_time = omp_get_wtime();
-    bubble(arr, n);
-    end_time = omp_get_wtime();     
-    cout << "Sequential Bubble Sort took : " << end_time - start_time << " seconds.\n";
-    printArray(arr, n);
-    
-    // Reset the array
-    for(int i = 0, j = n; i < n; i++, j--) arr[i] = j;
-    
-    // Parallel time
-    start_time = omp_get_wtime();
-    pBubble(arr, n);
-    end_time = omp_get_wtime();     
-    cout << "Parallel Bubble Sort took : " << end_time - start_time << " seconds.\n";
-    printArray(arr, n);
-}   
