@@ -7,10 +7,9 @@ Cuda addition
 
 __global__ void vector(float *A, float *B, float *C, int n) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < n) {
+    if (i < n) 
         C[i] = A[i] + B[i];
     }
-}
 
 int main() {
     int n = 2;
