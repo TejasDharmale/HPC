@@ -52,3 +52,9 @@ int main() {
 
     return 0;
 }
+
+// To run the code on linux 
+//   nvcc --version
+//   nano vector_add.cu
+//   nvcc -o vector_add vector_add.cu
+//   ./vector_add
